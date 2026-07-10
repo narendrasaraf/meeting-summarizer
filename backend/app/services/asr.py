@@ -200,14 +200,14 @@ def _gemini_upload_audio(file_path: str) -> tuple[str, str]:
     file_name: str = file_info["file"]["name"]  # e.g. "files/abc123"
 
     # ── Step 3: wait for ACTIVE state (usually immediate for small files) ─────
-    for attempt in range(20):
+    for attempt in range(12):
         state_url = f"{_GEMINI_API}/v1beta/{file_name}?key={key}"
         info = _gemini_http("GET", state_url)
         state = info.get("state", "PROCESSING")
         if state == "ACTIVE":
             break
-        logger.debug("Gemini file state=%s, waiting …", state)
-        time.sleep(2)
+        logger.debug("Gemini file state=%s, waiting ...", state)
+        time.sleep(6)
     else:
         raise TranscriptionError("Gemini file never reached ACTIVE state")
 
