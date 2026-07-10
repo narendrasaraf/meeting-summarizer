@@ -1,0 +1,28 @@
+{
+  "id": 15,
+  "filename": "sample_01.wav",
+  "status": "completed",
+  "duration_seconds": null,
+  "transcript": "Alright, let's kick off the sprint planning. Sarah, what's the status on the API integration? I finished the auth module yesterday. I'm still working on the rate limiting -- should be done by Wednesday. Great. I'll start on the frontend dashboard once Sarah's API is ready. We need to deploy to staging by Friday. Any blockers? I might need access to the production database schema. Got it, I'll send that over today. Let's reconvene Thursday morning at 10:00 AM.",
+  "summary": "The team kicked off sprint planning. Sarah is working on the API rate limiting, and the frontend dashboard will start once the API is ready. Staging deployment is scheduled for Friday.",
+  "key_decisions": [
+    "Deploy the sprint work to staging by Friday",
+    "Reconvene for the next status sync on Thursday morning at 10:00 AM"
+  ],
+  "action_items": [
+    {
+      "task": "Send production database schema to Sarah",
+      "owner": "Unassigned",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "task": "Finish API rate limiting implementation",
+      "owner": "Sarah",
+      "due_date": "Wednesday",
+      "priority": "medium"
+    }
+  ],
+  "error_message": null,
+  "created_at": "2026-07-10T16:41:45.171942"
+}

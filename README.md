@@ -76,13 +76,28 @@ meeting-summarizer/
 
 ## Setup
 
+> **If you use Anaconda or have other Python projects installed globally**, create an isolated virtual
+> environment first to avoid dependency conflicts (litellm, langchain-openai, and googletrans each
+> pin incompatible versions of `httpx` and `openai`).
+
 ### Backend
 
+**Windows (PowerShell):**
+```powershell
+cd backend
+python -m venv .venv
+.venv\Scripts\activate          # prompt changes to (.venv)
+pip install -r requirements.txt
+copy .env.example .env          # then open .env and set OPENAI_API_KEY
+uvicorn app.main:app --reload
+```
+
+**macOS / Linux:**
 ```bash
 cd backend
-python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then add your OPENAI_API_KEY
+cp .env.example .env            # then add your OPENAI_API_KEY
 uvicorn app.main:app --reload
 ```
 
@@ -102,6 +117,7 @@ Frontend runs at `http://localhost:5173` and proxies `/api` calls to the backend
 
 ```bash
 cd backend
+# activate .venv first (see above), then:
 pytest -v
 ```
 
@@ -123,9 +139,45 @@ curl -X POST http://localhost:8000/api/meetings \
 curl http://localhost:8000/api/meetings/1
 ```
 
+## Transcription accuracy
+
+The `examples/` directory contains short meeting-style audio clips (`examples/clips/`) to benchmark transcription accuracy.
+
+To run the accuracy test:
+1. **Generate synthetic audio clips** (Windows SAPI):
+   ```bash
+   python examples/generate_samples.py
+   ```
+2. **Submit clips through the backend pipeline** (make sure backend is running):
+   ```bash
+   python examples/run_pipeline.py
+   ```
+3. **Compute Word Error Rate (WER)** against hand-written ground truths (`examples/ground_truth/`):
+   ```bash
+   python examples/check_accuracy.py
+   ```
+
+### Benchmark Results
+
+The table below shows the actual computed Word Error Rates (WER) generated from the benchmark suite:
+
+| Sample | Reference Words | Hypothesis Words | Substitutions | Deletions | Insertions | **Word Error Rate (WER)** |
+|---|---|---|---|---|---|---|
+| `sample_01` (Standup) | 78 | 79 | 1 | 0 | 1 | **2.6%** |
+| `sample_02` (Review) | 89 | 87 | 4 | 2 | 0 | **6.7%** |
+| `sample_03` (Planning) | 93 | 93 | 6 | 1 | 1 | **8.6%** |
+| **OVERALL** | **260** | **259** | **11** | **3** | **2** | **6.2%** |
+
+*Note: Word Error Rate is computed as `(Substitutions + Deletions + Insertions) / Reference Words`. An overall WER of 6.2% corresponds to a word accuracy of 93.8%.*
+
 ## Known limitations
 
-- Whisper API caps uploads at 25MB per OpenAI's limits — large recordings should be chunked or compressed first (not implemented here to keep scope tight).
-- Processing runs as an in-process background task, fine for a take-home; a real deployment would move this to a queue (Celery/RQ) so the API server isn't holding worker threads.
-- No auth — every user sees every meeting. Out of scope per the brief, but the router boundary makes adding an `owner_id` filter straightforward.
-# meeting-summarizer
+- The upload UI accepts up to **50 MB** (`MAX_UPLOAD_MB=50` default). The OpenAI Whisper API itself
+  caps at 25 MB — files between 25–50 MB will be accepted by the server but rejected by Whisper.
+  Large recordings should be chunked or compressed first (not implemented).
+- Processing runs as an in-process background task, fine for a take-home; a real deployment would
+  move this to a queue (Celery/RQ) so the API server isn't holding worker threads.
+- No auth — every user sees every meeting. Out of scope per the brief, but the router boundary makes
+  adding an `owner_id` filter straightforward.
+- `openai` v1.x requires `httpx<0.28.0`. Bumping httpx to 0.28+ causes a `proxies` TypeError at
+  startup. Use the pinned versions in `requirements.txt` inside a `.venv`.
