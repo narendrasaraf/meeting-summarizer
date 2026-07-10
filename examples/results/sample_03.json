@@ -1,0 +1,12 @@
+{
+  "id": 17,
+  "filename": "sample_03.wav",
+  "status": "failed",
+  "duration_seconds": null,
+  "transcript": "Let's finalize the Q3 roadmap. We have three main initiatives: the checkout redesign, the recommendation engine, and the analytics dashboard. The checkout redesign is highest priority. The approved budget is 50,000 dollars. Timeline: design complete by July 31st, development runs through September, and we launch in October. Main risk: the payment processor migration might cause delays. Action items: Lisa will schedule the design review by July 15th. Mark will send the payment processor API documentation to the team by end of week. Our next meeting is July 17th at 2:00 PM.",
+  "summary": null,
+  "key_decisions": [],
+  "action_items": [],
+  "error_message": "Summarization failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+  "created_at": "2026-07-10T16:42:44.041795"
+}

@@ -1,0 +1,27 @@
+{
+  "id": 16,
+  "filename": "sample_02.wav",
+  "status": "completed",
+  "duration_seconds": null,
+  "transcript": "Okay, the user dashboard feature is ready for review. We have about 400 users in the beta program. The conversion rate is up 12 percent from last month. The main issues are loading time on mobile, averaging about three seconds, and we need to fix the notification bug before the launch. Decision: we launch next Monday if the mobile performance issue is resolved. Kevin, can you own the performance fix? Sure, I'll have a pull request up by tomorrow. Target is under 1.5 seconds load time.",
+  "summary": "Reviewed the user dashboard feature. Mobile load times average 3 seconds and there is a notification bug to fix. Conversion rate is up 12% with 400 beta users.",
+  "key_decisions": [
+    "Launch the dashboard next Monday if the mobile performance issue is resolved"
+  ],
+  "action_items": [
+    {
+      "task": "Fix mobile performance issue under 1.5 seconds",
+      "owner": "Kevin",
+      "due_date": "tomorrow",
+      "priority": "high"
+    },
+    {
+      "task": "Fix the dashboard notification bug before launch",
+      "owner": "Unassigned",
+      "due_date": "next Monday",
+      "priority": "high"
+    }
+  ],
+  "error_message": null,
+  "created_at": "2026-07-10T16:42:14.632816"
+}

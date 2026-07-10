@@ -3,7 +3,7 @@ Database layer. Uses SQLModel (SQLAlchemy + Pydantic) on top of SQLite
 for zero-config local persistence. Swap DATABASE_URL for Postgres/MySQL
 in production without changing this file.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 
 from sqlmodel import SQLModel, Field, create_engine, Session
@@ -27,8 +27,8 @@ class Meeting(SQLModel, table=True):
     key_decisions_json: Optional[str] = None  # JSON-encoded list[str]
     action_items_json: Optional[str] = None   # JSON-encoded list[dict]
     error_message: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def key_decisions(self) -> List[str]:
         return json.loads(self.key_decisions_json) if self.key_decisions_json else []
