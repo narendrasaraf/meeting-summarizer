@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"])
 
+# DEMO_MODE lets the app run without real API keys for demonstration purposes.
+# When true, every uploaded meeting is completed with clearly-labelled fake
+# content so it is NEVER mistakable for a real transcription or summary.
+# Set DEMO_MODE=true in your .env or environment to enable.
+DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"}
+
 
 def _process_meeting(meeting_id: int, file_path: str) -> None:
     """Background job: transcribe then summarize, updating the DB row."""
@@ -40,7 +46,47 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
         os.path.basename(file_path),
     )
 
-    stage = "init"
+    # ── DEMO MODE: skip all real API calls ──────────────────────────────────────
+    if DEMO_MODE:
+        logger.warning(
+            "DEMO_MODE is enabled — meeting_id=%s will receive SIMULATED content. "
+            "Set DEMO_MODE=false and supply a real API key for live transcription.",
+            meeting_id,
+        )
+        import json as _json
+        with _Session(engine) as session:
+            meeting = session.get(Meeting, meeting_id)
+            if not meeting:
+                return
+            meeting.transcript = (
+                "[SIMULATED — no live transcription] "
+                "This is placeholder text generated in DEMO_MODE. "
+                "No audio was sent to any speech-recognition API."
+            )
+            meeting.duration_seconds = None
+            meeting.summary = (
+                "[SIMULATED — no live transcription] "
+                "Demo summary: the meeting covered placeholder topics. "
+                "Enable a real provider (OPENAI_API_KEY / GROQ_API_KEY / GEMINI_API_KEY) "
+                "and set DEMO_MODE=false to get a real summary."
+            )
+            meeting.key_decisions_json = _json.dumps(
+                ["[SIMULATED] No real decisions — DEMO_MODE is active"]
+            )
+            meeting.action_items_json = _json.dumps(
+                [{"task": "[SIMULATED] Disable DEMO_MODE and add a real API key",
+                  "owner": "Unassigned", "due_date": None, "priority": "high"}]
+            )
+            meeting.status = "completed"
+            meeting.updated_at = datetime.now(timezone.utc)
+            session.add(meeting)
+            session.commit()
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            logger.info("pipeline.demo.finish meeting_id=%s", meeting_id)
+        return
+    # ─────────────────────────────────────────────────────────────────────────────
+
     with _Session(engine) as session:
         meeting = session.get(Meeting, meeting_id)
         if not meeting:
@@ -53,6 +99,8 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
             asr_result = transcribe_audio(file_path, original_filename=meeting.filename)
             meeting.transcript = asr_result["text"]
             meeting.duration_seconds = asr_result.get("duration")
+            if asr_result.get("segments"):
+                meeting.segments_json = json.dumps(asr_result["segments"])
             session.add(meeting)
             session.commit()
             logger.info(
@@ -61,6 +109,7 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
                 meeting.duration_seconds or 0.0,
                 len(meeting.transcript),
             )
+
 
             # ── Stage 2: Summarisation ────────────────────────────────────────
             stage = "summarization"
@@ -122,9 +171,11 @@ def _to_response(meeting: Meeting) -> MeetingResponse:
         summary=meeting.summary,
         key_decisions=meeting.key_decisions(),
         action_items=[ActionItem(**a) for a in meeting.action_items()],
+        segments=meeting.segments() if meeting.segments_json else None,
         error_message=meeting.error_message,
         created_at=meeting.created_at,
     )
+
 
 
 @router.post("", response_model=MeetingResponse, status_code=202)

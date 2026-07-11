@@ -26,6 +26,7 @@ class Meeting(SQLModel, table=True):
     summary: Optional[str] = None
     key_decisions_json: Optional[str] = None  # JSON-encoded list[str]
     action_items_json: Optional[str] = None   # JSON-encoded list[dict]
+    segments_json: Optional[str] = None       # JSON-encoded list[dict]
     error_message: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -35,6 +36,10 @@ class Meeting(SQLModel, table=True):
 
     def action_items(self) -> List[dict]:
         return json.loads(self.action_items_json) if self.action_items_json else []
+
+    def segments(self) -> List[dict]:
+        return json.loads(self.segments_json) if self.segments_json else []
+
 
 
 def init_db() -> None:
