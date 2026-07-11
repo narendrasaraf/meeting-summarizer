@@ -14,6 +14,12 @@ class ActionItem(BaseModel):
     priority: Optional[str] = "medium"
 
 
+class Segment(BaseModel):
+    start: float
+    end: float
+    text: str
+
+
 class SummaryPayload(BaseModel):
     summary: str
     key_decisions: List[str]
@@ -29,10 +35,12 @@ class MeetingResponse(BaseModel):
     summary: Optional[str]
     key_decisions: List[str] = []
     action_items: List[ActionItem] = []
+    segments: Optional[List[Segment]] = None
     error_message: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 class MeetingListItem(BaseModel):

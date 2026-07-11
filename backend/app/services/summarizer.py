@@ -107,46 +107,14 @@ def _call_gpt_api(transcript: str) -> str:
     return response.choices[0].message.content
 
 
-SIMULATED_SUMMARIES = {
-    "sprint planning": {
-        "summary": "The team kicked off sprint planning. Sarah is working on the API rate limiting, and the frontend dashboard will start once the API is ready. Staging deployment is scheduled for Friday.",
-        "key_decisions": [
-            "Deploy the sprint work to staging by Friday",
-            "Reconvene for the next status sync on Thursday morning at 10:00 AM"
-        ],
-        "action_items": [
-            {"task": "Send production database schema to Sarah", "owner": "Unassigned", "due_date": None, "priority": "high"},
-            {"task": "Finish API rate limiting implementation", "owner": "Sarah", "due_date": "Wednesday", "priority": "medium"}
-        ]
-    },
-    "user dashboard": {
-        "summary": "Reviewed the user dashboard feature. Mobile load times average 3 seconds and there is a notification bug to fix. Conversion rate is up 12% with 400 beta users.",
-        "key_decisions": [
-            "Launch the dashboard next Monday if the mobile performance issue is resolved"
-        ],
-        "action_items": [
-            {"task": "Fix mobile performance issue under 1.5 seconds", "owner": "Kevin", "due_date": "tomorrow", "priority": "high"},
-            {"task": "Fix the dashboard notification bug before launch", "owner": "Unassigned", "due_date": "next Monday", "priority": "high"}
-        ]
-    },
-    "q3 roadmap": {
-        "summary": "Finalised the Q3 roadmap focusing on checkout redesign, recommendation engine, and analytics dashboard. The checkout redesign is the highest priority with a 50k budget.",
-        "key_decisions": [
-            "Checkout redesign is the highest priority initiative for Q3",
-            "Target timeline: design by July 31st, dev through September, launch in October"
-        ],
-        "action_items": [
-            {"task": "Schedule the design review", "owner": "Lisa", "due_date": "July 15th", "priority": "medium"},
-            {"task": "Send payment processor API documentation to the team", "owner": "Mark", "due_date": "Friday", "priority": "high"}
-        ]
-    }
-}
-
-
 def summarize_transcript(transcript: str) -> dict:
     """
     Summarizes a transcript into overview + key decisions + action items.
     Retries up to 3 times on transient errors (429, timeouts, 5xx).
+
+    On any non-transient failure the underlying exception is re-raised as
+    SummarizationError so the caller (the router) can mark the meeting as
+    "failed" with a populated error_message.
 
     Returns:
         dict with keys: summary (str), key_decisions (list[str]),
@@ -163,12 +131,8 @@ def summarize_transcript(transcript: str) -> dict:
             "key_decisions": parsed.get("key_decisions", []),
             "action_items": parsed.get("action_items", []),
         }
+    except SummarizationError:
+        raise
     except Exception as exc:  # noqa: BLE001
-        for keyword, simulated in SIMULATED_SUMMARIES.items():
-            if keyword in transcript.lower():
-                logger.warning(
-                    "Summarisation failed. Using simulated fallback summary: %s",
-                    exc,
-                )
-                return simulated
         raise SummarizationError(f"Summarization failed: {exc}") from exc
+
