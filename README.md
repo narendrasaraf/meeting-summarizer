@@ -8,10 +8,10 @@ Upload a meeting recording, get back a transcript, a decision-focused summary, a
 
 ## 🚀 Demo
 
-- **Live Demo**: [https://meeting-summarizer.narendrasaraf.in/](http://meeting-summarizer.narendrasaraf.in/)  
+- **Live Demo**: [https://meeting-summarizer.narendrasaraf.in/](https://meeting-summarizer.narendrasaraf.in/)  
   *(Rate-limited to 3 uploads per hour, utilizing free-tier AI providers, with audio uploads automatically deleted after 60 minutes)*
-- **Demo video:** _[add link here after recording — see `docs/demo-checklist.md`]_
-- **Screenshots:** _[optional — drop into `docs/` and link here]_
+- **Demo video:** 
+- **Screenshots:** 
 - **Deployment Runbook**: Step-by-step instructions to reproduce this deployment on AWS are documented in [deploy/deploy.md](/docs/deploy/deploy.md).
 
 ---
