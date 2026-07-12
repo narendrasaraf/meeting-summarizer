@@ -6,6 +6,13 @@ Sends every audio clip in examples/clips/ through the running Meeting
 Summarizer backend, polls until each job completes, and saves the full
 API response JSON + raw transcript text to examples/results/.
 
+Each saved <stem>.json now includes:
+  asr_seconds     — wall-clock time for the transcription stage
+  summary_seconds — wall-clock time for the summarization stage
+
+These fields are captured server-side with time.perf_counter() and
+included in the API response. They are used by cost_estimate.py.
+
 Prerequisites
 -------------
   1. Backend running:
@@ -19,6 +26,11 @@ Usage
     python examples/run_pipeline.py
     python examples/run_pipeline.py --base-url http://localhost:8000
     python examples/run_pipeline.py --poll-interval 3 --timeout 300
+
+Next steps after running:
+    python examples/check_accuracy.py    # Word Error Rate
+    python examples/check_grounding.py   # Summary Faithfulness
+    python examples/cost_estimate.py     # Cost & Latency estimates
 """
 
 import argparse
@@ -158,8 +170,10 @@ def main() -> None:
         if meeting:
             save_results(clip, meeting)
 
-    print("\nDone. Next step:")
-    print("  python examples/check_accuracy.py")
+    print("\nDone. Next steps:")
+    print("  python examples/check_accuracy.py    # WER benchmark")
+    print("  python examples/check_grounding.py   # summary faithfulness")
+    print("  python examples/cost_estimate.py     # cost & latency estimates")
 
 
 if __name__ == "__main__":

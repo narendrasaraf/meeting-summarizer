@@ -1,28 +1,92 @@
 {
-  "id": 15,
+  "id": 38,
   "filename": "sample_01.wav",
   "status": "completed",
-  "duration_seconds": null,
-  "transcript": "Alright, let's kick off the sprint planning. Sarah, what's the status on the API integration? I finished the auth module yesterday. I'm still working on the rate limiting -- should be done by Wednesday. Great. I'll start on the frontend dashboard once Sarah's API is ready. We need to deploy to staging by Friday. Any blockers? I might need access to the production database schema. Got it, I'll send that over today. Let's reconvene Thursday morning at 10:00 AM.",
-  "summary": "The team kicked off sprint planning. Sarah is working on the API rate limiting, and the frontend dashboard will start once the API is ready. Staging deployment is scheduled for Friday.",
+  "duration_seconds": 43.5140608,
+  "transcript": " Alright, let's kick off the sprint planning. Sarah, what's the status on the API integration? I finished the auth module yesterday. I'm still working on the rate limiting a euro should be done by Wednesday. Great. I'll start on the front-end dashboard once Sarah's API is ready. We need to deploy to staging by Friday. any blockers? I might need access to the production database schema got it, I'll send that over today let's reconvene Thursday morning at 10am",
+  "summary": "The team discussed the status of the API integration and front-end dashboard, with plans to deploy to staging by Friday. The team also identified a potential blocker related to access to the production database schema.",
   "key_decisions": [
-    "Deploy the sprint work to staging by Friday",
-    "Reconvene for the next status sync on Thursday morning at 10:00 AM"
+    "Deploy to staging by Friday"
   ],
   "action_items": [
     {
-      "task": "Send production database schema to Sarah",
-      "owner": "Unassigned",
-      "due_date": null,
+      "task": "Complete rate limiting for API integration",
+      "owner": "Sarah",
+      "due_date": "Wednesday",
       "priority": "high"
     },
     {
-      "task": "Finish API rate limiting implementation",
-      "owner": "Sarah",
-      "due_date": "Wednesday",
+      "task": "Send production database schema",
+      "owner": "Unassigned",
+      "due_date": "today",
+      "priority": "high"
+    },
+    {
+      "task": "Start on front-end dashboard",
+      "owner": "Unassigned",
+      "due_date": null,
       "priority": "medium"
     }
   ],
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 3.1999998,
+      "text": " Alright, let's kick off the sprint planning."
+    },
+    {
+      "start": 4.48,
+      "end": 8.22,
+      "text": " Sarah, what's the status on the API integration?"
+    },
+    {
+      "start": 9.099999,
+      "end": 11.8,
+      "text": " I finished the auth module yesterday."
+    },
+    {
+      "start": 12.599999,
+      "end": 17.22,
+      "text": " I'm still working on the rate limiting a euro should be done by Wednesday."
+    },
+    {
+      "start": 18.18,
+      "end": 18.859999,
+      "text": " Great."
+    },
+    {
+      "start": 19.56,
+      "end": 24.279999,
+      "text": " I'll start on the front-end dashboard once Sarah's API is ready."
+    },
+    {
+      "start": 25.019999,
+      "end": 28.039999,
+      "text": " We need to deploy to staging by Friday."
+    },
+    {
+      "start": 28.039999,
+      "end": 30.199999,
+      "text": " any blockers?"
+    },
+    {
+      "start": 30.88,
+      "end": 34.6,
+      "text": " I might need access to the production database schema"
+    },
+    {
+      "start": 34.6,
+      "end": 38.3,
+      "text": " got it, I'll send that over today"
+    },
+    {
+      "start": 38.3,
+      "end": 42.42,
+      "text": " let's reconvene Thursday morning at 10am"
+    }
+  ],
+  "asr_seconds": 1.215,
+  "summary_seconds": 0.828,
   "error_message": null,
-  "created_at": "2026-07-10T16:41:45.171942"
+  "created_at": "2026-07-12T06:06:10.467177"
 }

@@ -27,6 +27,8 @@ class Meeting(SQLModel, table=True):
     key_decisions_json: Optional[str] = None  # JSON-encoded list[str]
     action_items_json: Optional[str] = None   # JSON-encoded list[dict]
     segments_json: Optional[str] = None       # JSON-encoded list[dict]
+    asr_seconds: Optional[float] = None       # wall-clock time for ASR stage
+    summary_seconds: Optional[float] = None   # wall-clock time for summarization stage
     error_message: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2 via SSH
+        env:
+          EC2_HOST: ${{ secrets.AWS_EC2_HOST }}
+          SSH_KEY: ${{ secrets.AWS_EC2_SSH_KEY }}
+        run: |
+          # 1. Create .ssh directory and write the private key
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # 2. Add host key to known_hosts to prevent interactive prompting
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # 3. Connect to the host, pull the latest code, and rebuild the containers
+          ssh -i ~/.ssh/id_rsa ubuntu@$EC2_HOST "
+            cd /home/ubuntu/meeting-summarizer && \
+            git pull && \
+            FRONTEND_PORT=80 docker compose up -d --build
+          "

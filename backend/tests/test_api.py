@@ -437,3 +437,55 @@ def test_dedup_boundary_no_overlap_unchanged():
     assert result_text == text_b
     assert n_dropped == 0
 
+
+# ── Rate limiting tests ───────────────────────────────────────────────────────
+
+@patch("app.routers.meetings.transcribe_audio")
+@patch("app.routers.meetings.summarize_transcript")
+def test_upload_rate_limit_blocks_4th_request(mock_summarize, mock_transcribe):
+    """
+    POST /api/meetings is limited to UPLOAD_RATE_LIMIT (default: 3/hour) per IP.
+
+    The 4th request from the same client IP within the rate window must return
+    HTTP 429.  We reset the limiter's in-memory storage before and after the
+    test to ensure isolation from prior/subsequent test uploads.
+
+    slowapi attaches the canonical limiter to app.state.limiter in app.main;
+    that is the instance whose .reset() clears the counter store.
+    """
+    import app.main as _main_module
+
+    # Reset the canonical limiter so prior test uploads don't count.
+    _main_module.limiter.reset()
+
+    mock_transcribe.return_value = {"text": "Rate limit test transcript.", "duration": 5.0}
+    mock_summarize.return_value = {
+        "summary": "Rate limit test summary.",
+        "key_decisions": [],
+        "action_items": [],
+    }
+
+    audio_payload = {"file": ("rl_test.wav", io.BytesIO(b"fake-audio-bytes"), "audio/wav")}
+
+    # First 3 requests must succeed (202).
+    for i in range(3):
+        resp = client.post("/api/meetings", files=audio_payload)
+        assert resp.status_code == 202, (
+            f"Request {i + 1} expected 202, got {resp.status_code}: {resp.text}"
+        )
+
+    # 4th request must be blocked with 429.
+    resp = client.post("/api/meetings", files=audio_payload)
+    assert resp.status_code == 429, (
+        f"Expected 429 on 4th request, got {resp.status_code}: {resp.text}"
+    )
+    body = resp.json()
+    # slowapi returns {"error": "Rate limit exceeded: ..."} by default.
+    assert "error" in body or "detail" in body, (
+        f"429 response should carry an error/detail message, got: {body}"
+    )
+
+    # Clean up: reset so the rate window doesn't bleed into other tests.
+    _main_module.limiter.reset()
+
+

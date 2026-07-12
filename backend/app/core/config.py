@@ -103,6 +103,28 @@ class Settings:
     ALLOWED_EXTENSIONS: set = {".mp3", ".wav", ".m4a", ".mp4", ".webm", ".ogg", ".flac"}
     CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 
+    # ── Rate limiting ─────────────────────────────────────────────────────────
+    # Format: "<count>/<period>" where period is second/minute/hour/day.
+    # Applied to POST /api/meetings (the upload endpoint). Adjust for your
+    # expected traffic — 3/hour is conservative for a public demo.
+    UPLOAD_RATE_LIMIT: str = os.getenv("UPLOAD_RATE_LIMIT", "3/hour")
+
+    # ── Demo mode ─────────────────────────────────────────────────────────────
+    # When DEMO_MODE=true (set in the AWS demo environment):
+    #   • PROVIDER is forced to "groq" (free tier) regardless of what is configured.
+    #     If GROQ_API_KEY is missing, falls back to "gemini" (also free tier).
+    #   • MAX_UPLOAD_MB is capped at 10 to bound worst-case API cost per request.
+    # This lets you share the public URL without fear of runaway OpenAI spend.
+    DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"}
+    # DEMO_MAX_UPLOAD_MB: hard cap when DEMO_MODE is on (not user-configurable).
+    DEMO_MAX_UPLOAD_MB: int = 10
+
+    # ── Simulation mode (mock bypass) ──────────────────────────────────────────
+    # Set SIMULATE_MODE=true to completely bypass real API calls and return
+    # marked, pre-canned simulated JSON response payloads. Useful for local
+    # development without active keys/network access.
+    SIMULATE_MODE: bool = os.getenv("SIMULATE_MODE", "false").lower() in {"1", "true", "yes"}
+
     # ── Computed helpers (read by services) ───────────────────────────────────
 
     @property
@@ -165,6 +187,28 @@ class Settings:
 
 
 settings = Settings()
+
+# ── Demo-mode enforcement ──────────────────────────────────────────────────────
+# Must run after Settings() is constructed so that all env vars are already read.
+if settings.DEMO_MODE:
+    _FREE_TIER_PROVIDERS = ("groq", "gemini")
+    if settings.PROVIDER not in _FREE_TIER_PROVIDERS:
+        # Force to groq if a key is available, otherwise gemini.
+        _forced = "groq" if settings.GROQ_API_KEY else "gemini"
+        logger.warning(
+            "DEMO_MODE=true: overriding PROVIDER=%s → %s (free tier only in demo mode).",
+            settings.PROVIDER,
+            _forced,
+        )
+        settings.PROVIDER = _forced
+    # Cap upload size to bound worst-case cost per request.
+    if settings.MAX_UPLOAD_MB > settings.DEMO_MAX_UPLOAD_MB:
+        logger.warning(
+            "DEMO_MODE=true: capping MAX_UPLOAD_MB from %d → %d MB.",
+            settings.MAX_UPLOAD_MB,
+            settings.DEMO_MAX_UPLOAD_MB,
+        )
+        settings.MAX_UPLOAD_MB = settings.DEMO_MAX_UPLOAD_MB
 
 # ── Startup validation ────────────────────────────────────────────────────────
 if settings.PROVIDER not in _SUPPORTED_PROVIDERS:

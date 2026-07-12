@@ -11,14 +11,16 @@ for a failed meeting identifies exactly which stage failed and why.
 import json
 import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, UploadFile
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.limiter import limiter
 from app.models.db import Meeting, get_session
 from app.models.schemas import ActionItem, MeetingListItem, MeetingResponse
 from app.services.asr import TranscriptionError, transcribe_audio
@@ -28,11 +30,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"])
 
-# DEMO_MODE lets the app run without real API keys for demonstration purposes.
-# When true, every uploaded meeting is completed with clearly-labelled fake
-# content so it is NEVER mistakable for a real transcription or summary.
-# Set DEMO_MODE=true in your .env or environment to enable.
-DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"}
+# limiter is the shared instance from app.limiter (same object used in app.main).
+# Using the same instance ensures .reset() in tests clears all counters and that
+# the exception handler registered in main.py covers limits applied here.
 
 
 def _process_meeting(meeting_id: int, file_path: str) -> None:
@@ -46,11 +46,11 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
         os.path.basename(file_path),
     )
 
-    # ── DEMO MODE: skip all real API calls ──────────────────────────────────────
-    if DEMO_MODE:
+    # ── SIMULATE MODE: skip all real API calls ──────────────────────────────────
+    if settings.SIMULATE_MODE:
         logger.warning(
-            "DEMO_MODE is enabled — meeting_id=%s will receive SIMULATED content. "
-            "Set DEMO_MODE=false and supply a real API key for live transcription.",
+            "SIMULATE_MODE is enabled — meeting_id=%s will receive SIMULATED content. "
+            "Set SIMULATE_MODE=false and supply a real API key for live transcription.",
             meeting_id,
         )
         import json as _json
@@ -60,7 +60,7 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
                 return
             meeting.transcript = (
                 "[SIMULATED — no live transcription] "
-                "This is placeholder text generated in DEMO_MODE. "
+                "This is placeholder text generated in SIMULATE_MODE. "
                 "No audio was sent to any speech-recognition API."
             )
             meeting.duration_seconds = None
@@ -68,13 +68,13 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
                 "[SIMULATED — no live transcription] "
                 "Demo summary: the meeting covered placeholder topics. "
                 "Enable a real provider (OPENAI_API_KEY / GROQ_API_KEY / GEMINI_API_KEY) "
-                "and set DEMO_MODE=false to get a real summary."
+                "and set SIMULATE_MODE=false to get a real summary."
             )
             meeting.key_decisions_json = _json.dumps(
-                ["[SIMULATED] No real decisions — DEMO_MODE is active"]
+                ["[SIMULATED] No real decisions — SIMULATE_MODE is active"]
             )
             meeting.action_items_json = _json.dumps(
-                [{"task": "[SIMULATED] Disable DEMO_MODE and add a real API key",
+                [{"task": "[SIMULATED] Disable SIMULATE_MODE and add a real API key",
                   "owner": "Unassigned", "due_date": None, "priority": "high"}]
             )
             meeting.status = "completed"
@@ -83,7 +83,7 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
             session.commit()
             if os.path.exists(file_path):
                 os.remove(file_path)
-            logger.info("pipeline.demo.finish meeting_id=%s", meeting_id)
+            logger.info("pipeline.simulate.finish meeting_id=%s", meeting_id)
         return
     # ─────────────────────────────────────────────────────────────────────────────
 
@@ -96,7 +96,9 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
             # ── Stage 1: ASR ──────────────────────────────────────────────────
             stage = "asr"
             logger.info("pipeline.asr.start meeting_id=%s", meeting_id)
+            _asr_t0 = time.perf_counter()
             asr_result = transcribe_audio(file_path, original_filename=meeting.filename)
+            meeting.asr_seconds = round(time.perf_counter() - _asr_t0, 3)
             meeting.transcript = asr_result["text"]
             meeting.duration_seconds = asr_result.get("duration")
             if asr_result.get("segments"):
@@ -104,10 +106,11 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
             session.add(meeting)
             session.commit()
             logger.info(
-                "pipeline.asr.done meeting_id=%s duration_s=%.1f chars=%d",
+                "pipeline.asr.done meeting_id=%s duration_s=%.1f chars=%d asr_wall_s=%.2f",
                 meeting_id,
                 meeting.duration_seconds or 0.0,
                 len(meeting.transcript),
+                meeting.asr_seconds,
             )
 
 
@@ -118,16 +121,19 @@ def _process_meeting(meeting_id: int, file_path: str) -> None:
                 meeting_id,
                 len(meeting.transcript),
             )
+            _sum_t0 = time.perf_counter()
             summary_result = summarize_transcript(meeting.transcript)
+            meeting.summary_seconds = round(time.perf_counter() - _sum_t0, 3)
             meeting.summary = summary_result["summary"]
             meeting.key_decisions_json = json.dumps(summary_result["key_decisions"])
             meeting.action_items_json = json.dumps(summary_result["action_items"])
             meeting.status = "completed"
             logger.info(
-                "pipeline.summarize.done meeting_id=%s decisions=%d actions=%d",
+                "pipeline.summarize.done meeting_id=%s decisions=%d actions=%d summary_wall_s=%.2f",
                 meeting_id,
                 len(summary_result["key_decisions"]),
                 len(summary_result["action_items"]),
+                meeting.summary_seconds,
             )
 
         except (TranscriptionError, SummarizationError) as exc:
@@ -172,6 +178,8 @@ def _to_response(meeting: Meeting) -> MeetingResponse:
         key_decisions=meeting.key_decisions(),
         action_items=[ActionItem(**a) for a in meeting.action_items()],
         segments=meeting.segments() if meeting.segments_json else None,
+        asr_seconds=meeting.asr_seconds,
+        summary_seconds=meeting.summary_seconds,
         error_message=meeting.error_message,
         created_at=meeting.created_at,
     )
@@ -179,7 +187,9 @@ def _to_response(meeting: Meeting) -> MeetingResponse:
 
 
 @router.post("", response_model=MeetingResponse, status_code=202)
+@limiter.limit(settings.UPLOAD_RATE_LIMIT)
 async def upload_meeting(
+    request: Request,  # required by slowapi to extract the client IP
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     session: Session = Depends(get_session),

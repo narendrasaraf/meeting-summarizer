@@ -36,6 +36,8 @@ class MeetingResponse(BaseModel):
     key_decisions: List[str] = []
     action_items: List[ActionItem] = []
     segments: Optional[List[Segment]] = None
+    asr_seconds: Optional[float] = None
+    summary_seconds: Optional[float] = None
     error_message: Optional[str] = None
     created_at: datetime
 

@@ -1,27 +1,71 @@
 {
-  "id": 16,
+  "id": 39,
   "filename": "sample_02.wav",
   "status": "completed",
-  "duration_seconds": null,
-  "transcript": "Okay, the user dashboard feature is ready for review. We have about 400 users in the beta program. The conversion rate is up 12 percent from last month. The main issues are loading time on mobile, averaging about three seconds, and we need to fix the notification bug before the launch. Decision: we launch next Monday if the mobile performance issue is resolved. Kevin, can you own the performance fix? Sure, I'll have a pull request up by tomorrow. Target is under 1.5 seconds load time.",
-  "summary": "Reviewed the user dashboard feature. Mobile load times average 3 seconds and there is a notification bug to fix. Conversion rate is up 12% with 400 beta users.",
+  "duration_seconds": 44.668125184,
+  "transcript": " Okay, the user dashboard feature is ready for review. We have about 400 users in the beta program. The conversion rate is up 12% from last month. The main issues are loading time on mobile, averaging about 3 seconds, and we need to fix the notification bug before the launch. Decision, we launch next Monday if the mobile performance issue is resolved Kevin, can you own the performance fix? Sure, I'll have a pull request up by tomorrow Target is under 1.5 seconds load time",
+  "summary": "The user dashboard feature is ready for review with 400 users in the beta program, showing a 12% increase in conversion rate from last month. However, there are issues with mobile loading time and a notification bug that need to be addressed before launch. The team aims to launch next Monday if the mobile performance issue is resolved.",
   "key_decisions": [
-    "Launch the dashboard next Monday if the mobile performance issue is resolved"
+    "Launch the user dashboard feature next Monday if the mobile performance issue is resolved"
   ],
   "action_items": [
     {
-      "task": "Fix mobile performance issue under 1.5 seconds",
+      "task": "Fix the mobile performance issue to achieve a load time under 1.5 seconds",
       "owner": "Kevin",
       "due_date": "tomorrow",
       "priority": "high"
     },
     {
-      "task": "Fix the dashboard notification bug before launch",
+      "task": "Fix the notification bug",
       "owner": "Unassigned",
-      "due_date": "next Monday",
+      "due_date": null,
       "priority": "high"
     }
   ],
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 4.04,
+      "text": " Okay, the user dashboard feature is ready for review."
+    },
+    {
+      "start": 4.8399997,
+      "end": 8.58,
+      "text": " We have about 400 users in the beta program."
+    },
+    {
+      "start": 9.16,
+      "end": 13.32,
+      "text": " The conversion rate is up 12% from last month."
+    },
+    {
+      "start": 14.5199995,
+      "end": 23.779999,
+      "text": " The main issues are loading time on mobile, averaging about 3 seconds, and we need to fix the notification bug before the launch."
+    },
+    {
+      "start": 23.779999,
+      "end": 30.359999,
+      "text": " Decision, we launch next Monday if the mobile performance issue is resolved"
+    },
+    {
+      "start": 30.359999,
+      "end": 34.42,
+      "text": " Kevin, can you own the performance fix?"
+    },
+    {
+      "start": 35.62,
+      "end": 39.059998,
+      "text": " Sure, I'll have a pull request up by tomorrow"
+    },
+    {
+      "start": 39.059998,
+      "end": 43.64,
+      "text": " Target is under 1.5 seconds load time"
+    }
+  ],
+  "asr_seconds": 0.747,
+  "summary_seconds": 0.598,
   "error_message": null,
-  "created_at": "2026-07-10T16:42:14.632816"
+  "created_at": "2026-07-12T06:06:13.134118"
 }
