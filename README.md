@@ -18,6 +18,8 @@ Built for the "Meeting Summarizer" assessment brief: ASR integration + LLM summa
 
 ## 🏗️ Architecture
 
+![Architecture Diagram](/docs/image.png)
+
 ```
 ┌─────────────┐      multipart/form-data       ┌──────────────────────┐
 │   React     │ ───────────────────────────────▶│   FastAPI backend    │
