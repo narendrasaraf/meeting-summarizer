@@ -1,3 +1,13 @@
+# ==============================================================================
+# NOTE: This manual deployment workflow serves as a secondary escape hatch or
+# fallback (e.g., to force redeployment without changing codebase or after
+# rotating config keys directly on the instance).
+#
+# The primary automated CI/CD pipeline is configured in `ci.yml`, which triggers
+# on pushes to the `main` branch, executes unit tests, builds frontend assets,
+# and only deploys to AWS EC2 if all checks pass successfully.
+# ==============================================================================
+
 name: Deploy
 
 on:

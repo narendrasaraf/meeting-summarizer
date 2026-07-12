@@ -1,8 +1,8 @@
 # Meeting Summarizer
 
-Upload a meeting recording, get back a transcript, a decision-focused summary, and a structured action-item list — owner, due date, and priority included.
+[![CI/CD](https://github.com/narendrasaraf/meeting-summarizer/actions/workflows/ci.yml/badge.svg)](https://github.com/narendrasaraf/meeting-summarizer/actions/workflows/ci.yml)
 
-Built for the "Meeting Summarizer" assessment brief: ASR integration + LLM summarization + a backend to store/process results + an optional frontend.
+Upload a meeting recording, get back a transcript, a decision-focused summary, and a structured action-item list — owner, due date, and priority included.
 
 ---
 
@@ -12,7 +12,7 @@ Built for the "Meeting Summarizer" assessment brief: ASR integration + LLM summa
   *(Rate-limited to 3 uploads per hour, utilizing free-tier AI providers, with audio uploads automatically deleted after 60 minutes)*
 - **Demo video:** _[add link here after recording — see `docs/demo-checklist.md`]_
 - **Screenshots:** _[optional — drop into `docs/` and link here]_
-- **Deployment Runbook**: Step-by-step instructions to reproduce this deployment on AWS are documented in [deploy/README.md](file:///c:/Users/HP/Downloads/meeting-summarizer/meeting-summarizer/deploy/README.md).
+- **Deployment Runbook**: Step-by-step instructions to reproduce this deployment on AWS are documented in [deploy/deploy.md](/docs/deploy/deploy.md).
 
 ---
 
@@ -20,18 +20,6 @@ Built for the "Meeting Summarizer" assessment brief: ASR integration + LLM summa
 
 ![Architecture Diagram](/docs/image.png)
 
-```
-┌─────────────┐      multipart/form-data       ┌──────────────────────┐
-│   React     │ ───────────────────────────────▶│   FastAPI backend    │
-│  frontend   │                                  │                      │
-│ (Vite, JS)  │◀──── poll GET /api/meetings/:id ─│  1. save audio file  │
-└─────────────┘                                  │  2. Whisper ASR      │
-                                                 │  3. GPT summarizer   │
-                                                 │  4. persist (SQLite) │
-                                                 └──────────┬───────────┘
-                                                            │
-                                                    OpenAI Whisper + GPT
-```
 
 - **Upload → background processing → poll for result.** The upload endpoint returns immediately (`202`) with a `processing` record; a FastAPI `BackgroundTask` runs transcription then summarization and updates the row. The frontend polls every 2.5s until `status` is `completed` or `failed`. This keeps large-file uploads from blocking the HTTP request and mirrors how a production pipeline (queue + worker) would be structured, without needing extra infra for a take-home.
 - **ASR and summarization are isolated services** (`app/services/asr.py`, `app/services/summarizer.py`) behind plain functions, so swapping Whisper for Azure/Google Speech, or GPT for Claude/Gemini, touches one file each.
@@ -335,6 +323,19 @@ When deploying the application publicly (e.g., to an AWS demo server), security 
    - **Upload Cap**: Caps `MAX_UPLOAD_MB` to `10` (down from the default `50` MB) to bound worst-case duration/tokens per request.
 
 3. **Simulation Mode (`SIMULATE_MODE=true`)**: Bypasses API requests entirely for quick, offline local testing. Returns mock summary objects marked with `[SIMULATED]` without touching any external endpoints.
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+The application uses an automated GitHub Actions deployment pipeline to deliver code changes safely to the production environment:
+
+1. **Automated Verification**: On every push and pull request to the `main` branch, the pipeline executes backend unit tests (`pytest`) and compiles the React frontend assets (`npm run build`) in parallel.
+2. **Automated SSH Deployment**: Only on successful push/merge to the `main` branch, the pipeline automatically SSHs into the target AWS EC2 server, pulls down the latest code changes, and updates the active containers (`docker compose up -d --build`).
+3. **Live Health Checks**: Immediately post-deployment, the pipeline runs a verification script that curls the server's `/api/health` endpoint with a retry loop. The pipeline job is marked as successful only after confirming the application is actively serving traffic.
+
+- **Primary pipeline configuration**: [.github/workflows/ci.yml](file:///.github/workflows/ci.yml)
+- **Manual deployment escape hatch**: [.github/workflows/deploy.yml](file:///.github/workflows/deploy.yml) (can be triggered manually under the Actions tab to force a rebuild or update configuration settings).
 
 ---
 
