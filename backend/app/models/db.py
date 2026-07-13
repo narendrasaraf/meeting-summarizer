@@ -17,8 +17,18 @@ engine = create_engine(
 )
 
 
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True)
+    hashed_password: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class Meeting(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    owner_id: Optional[int] = Field(default=None, foreign_key="user.id", nullable=True)
+    job_id: Optional[str] = Field(default=None, nullable=True)
+    file_path: Optional[str] = Field(default=None, nullable=True)
     filename: str
     duration_seconds: Optional[float] = None
     status: str = Field(default="processing")  # processing | completed | failed
@@ -45,7 +55,20 @@ class Meeting(SQLModel, table=True):
 
 
 def init_db() -> None:
-    SQLModel.metadata.create_all(engine)
+    import os
+    import alembic.config
+    import alembic.command
+
+    # Locate alembic.ini relative to the app root directory
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ini_path = os.path.join(base_dir, "alembic.ini")
+
+    if os.path.exists(ini_path):
+        alembic_cfg = alembic.config.Config(ini_path)
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+        alembic.command.upgrade(alembic_cfg, "head")
+    else:
+        SQLModel.metadata.create_all(engine)
 
 
 def get_session():

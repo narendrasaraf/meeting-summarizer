@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=meetings
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+
   backend:
     build:
       context: ./backend
@@ -7,9 +23,30 @@ services:
       - "127.0.0.1:8000:8000"
     env_file:
       - ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/meetings
     volumes:
       - ./backend/uploads:/app/uploads
-      - ./backend/meetings.db:/app/meetings.db
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.run_worker"]
+    env_file:
+      - ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/meetings
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
 
   frontend:
     build:
@@ -19,3 +56,6 @@ services:
       - "127.0.0.1:8080:80"
     depends_on:
       - backend
+
+volumes:
+  pgdata:

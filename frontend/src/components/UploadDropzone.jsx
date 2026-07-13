@@ -9,7 +9,7 @@ const BAR_HEIGHTS = Array.from({ length: 48 }, (_, i) => {
   return 18 + Math.abs(seed % 1) * 64;
 });
 
-export default function UploadDropzone({ onFileSelected, disabled }) {
+export default function UploadDropzone({ onFileSelected, disabled, isUploading, progress }) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
 
@@ -23,6 +23,59 @@ export default function UploadDropzone({ onFileSelected, disabled }) {
     },
     [onFileSelected, disabled]
   );
+
+  if (isUploading) {
+    return (
+      <div className="dropzone dropzone--uploading">
+        <div className="dropzone__progress-container">
+          <div className="dropzone__progress-bar" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="dropzone__title">Uploading meeting audio... {progress}%</p>
+        <p className="dropzone__subtitle">Please keep this tab open during upload.</p>
+        <style>{`
+          .dropzone {
+            position: relative;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+            padding: 48px 32px 36px;
+            text-align: center;
+            overflow: hidden;
+          }
+          .dropzone--uploading {
+            cursor: default;
+          }
+          .dropzone__progress-container {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+          }
+          .dropzone__progress-bar {
+            height: 100%;
+            background: var(--amber);
+            transition: width 0.1s ease-out;
+          }
+          .dropzone__title {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin: 0 0 6px;
+            color: var(--text);
+          }
+          .dropzone__subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin: 0;
+            letter-spacing: 0.01em;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div

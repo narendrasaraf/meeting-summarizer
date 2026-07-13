@@ -10,9 +10,13 @@ Upload a meeting recording, get back a transcript, a decision-focused summary, a
 
 - **Live Demo**: [https://meeting-summarizer.narendrasaraf.in/](https://meeting-summarizer.narendrasaraf.in/)  
   *(Rate-limited to 3 uploads per hour, utilizing free-tier AI providers, with audio uploads automatically deleted after 60 minutes)*
-- **Demo video:** 
-- **Screenshots:** 
 - **Deployment Runbook**: Step-by-step instructions to reproduce this deployment on AWS are documented in [deploy/deploy.md](/docs/deploy/deploy.md).
+
+### 🖥️ Dashboard Walkthrough
+
+| 1. Upload Idle | 2. Upload Progress | 3. Complete Results |
+| :---: | :---: | :---: |
+| ![Upload Idle](/docs/screenshots/upload_idle.png) | ![Upload Progress](/docs/screenshots/upload_progress.png) | ![Results View](/docs/screenshots/results_view.png) |
 
 ---
 
@@ -339,11 +343,37 @@ The application uses an automated GitHub Actions deployment pipeline to deliver 
 
 ---
 
+## 🗄️ Database Migrations
+
+The project uses **Alembic** alongside **SQLModel** to manage database schema updates.
+
+### Configuration & Architecture
+- **Zero-Config Automatic Upgrades**: On application startup (both local development and inside Docker Compose), `init_db()` automatically runs `alembic upgrade head` programmatically. You do not need to run manual CLI upgrade commands in production.
+- **Local Dev vs. Production**:
+  - **Local Development**: Uses **SQLite** (`sqlite:///./meetings.db`) as a zero-config database. Alembic is configured with SQLite batch mode (`render_as_batch=True` inside `alembic/env.py`) to support schema modifications.
+  - **Production/Docker**: Uses **PostgreSQL** (`postgresql://postgres:postgres@postgres:5432/meetings`) as the default database.
+
+### Working with Migrations
+When changing your SQLModel schema in `app/models/db.py`, you can generate and apply revisions:
+
+1. **Autogenerate a new revision**:
+   ```bash
+   cd backend
+   # Make sure your database contains the schema of the current migrations before generating:
+   ..\.venv\Scripts\alembic revision --autogenerate -m "describe your changes"
+   ```
+2. **Apply migrations manually**:
+   ```bash
+   ..\.venv\Scripts\alembic upgrade head
+   ```
+
+---
+
 ## ⚠️ Known Limitations
 
 - **Large files (> 50 MB)**: the upload endpoint enforces `MAX_UPLOAD_MB=50`. Files between 25–50 MB are now handled automatically — `asr.py` detects files exceeding 24 MB and splits them into overlapping 10-minute chunks via **pydub** before sending each chunk to the provider. Chunks are exported as 16 kHz mono WAV (~19 MB each), safely under every provider's file-size limit.  
   **Prerequisite**: `ffmpeg` must be on the system `PATH` for non-WAV source formats (MP3, M4A, WebM, OGG). WAV files work without ffmpeg. Install on Ubuntu: `apt install ffmpeg`; on macOS: `brew install ffmpeg`; on Windows: download from https://ffmpeg.org/download.html.
-- **In-process background tasks**: Processing runs as an in-process background task, fine for a take-home; a real deployment would move this to a queue (Celery/RQ) so the API server isn't holding worker threads.
-- **No authentication**: No auth — every user sees every meeting. Out of scope per the brief, but the router boundary makes adding an `owner_id` filter straightforward.
+- **RQ + Redis Distributed Queue**: Processing is decoupled from the web server using Redis Queue (RQ) workers. Uploads enqueue jobs immediately, freeing the API server to handle requests, while worker containers process them asynchronously. Replicas can be scaled horizontally using docker-compose: `docker compose up --scale worker=3 -d`. Stuck task crash-recovery is handled on boot by requeuing incomplete jobs older than 15 minutes.
+- **Lightweight Authentication**: Includes a secure JWT-based authentication system gated behind an `AUTH_REQUIRED` environment flag. If `AUTH_REQUIRED=true`, registration/login is mandatory to upload, fetch, list, or delete meetings. If `AUTH_REQUIRED=false` (default), the dashboard runs in anonymous mode, but users can still log in to separate their meeting history. Production deployments should set `AUTH_REQUIRED=true`.
 - **Library versions**: `openai` v1.x requires `httpx<0.28.0`. Bumping `httpx` to 0.28+ causes a `proxies` `TypeError` at startup. Use the pinned versions in `requirements.txt` inside a `.venv`.
 

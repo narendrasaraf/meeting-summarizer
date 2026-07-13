@@ -62,7 +62,7 @@ def setup_db():
 def test_health_check():
     resp = client.get("/api/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    assert resp.json()["status"] == "ok"
 
 
 def test_upload_rejects_bad_extension():
@@ -74,8 +74,8 @@ def test_upload_rejects_bad_extension():
     assert "Unsupported file type" in resp.json()["detail"]
 
 
-@patch("app.routers.meetings.transcribe_audio")
-@patch("app.routers.meetings.summarize_transcript")
+@patch("app.workers.pipeline.transcribe_audio")
+@patch("app.workers.pipeline.summarize_transcript")
 def test_upload_processes_and_completes(mock_summarize, mock_transcribe):
     mock_transcribe.return_value = {"text": "We decided to ship on Friday.", "duration": 12.3}
     mock_summarize.return_value = {
@@ -86,7 +86,7 @@ def test_upload_processes_and_completes(mock_summarize, mock_transcribe):
 
     resp = client.post(
         "/api/meetings",
-        files={"file": ("standup.wav", io.BytesIO(b"fake-audio-bytes"), "audio/wav")},
+        files={"file": ("standup.wav", io.BytesIO(b"RIFF\x00\x00\x00\x00WAVEfake-audio-bytes"), "audio/wav")},
     )
     assert resp.status_code == 202
     meeting_id = resp.json()["id"]
@@ -226,7 +226,7 @@ def test_asr_raises_after_max_retries():
     assert mock_client.audio.transcriptions.create.call_count == 3
 
 
-@patch("app.routers.meetings.transcribe_audio")
+@patch("app.workers.pipeline.transcribe_audio")
 def test_asr_failure_sets_meeting_status_failed(mock_transcribe):
     """
     When transcribe_audio raises TranscriptionError the router must:
@@ -242,7 +242,7 @@ def test_asr_failure_sets_meeting_status_failed(mock_transcribe):
 
     resp = client.post(
         "/api/meetings",
-        files={"file": ("failure_test.wav", io.BytesIO(b"fake-audio-bytes"), "audio/wav")},
+        files={"file": ("failure_test.wav", io.BytesIO(b"RIFF\x00\x00\x00\x00WAVEfake-audio-bytes"), "audio/wav")},
     )
     assert resp.status_code == 202
     meeting_id = resp.json()["id"]
@@ -440,8 +440,8 @@ def test_dedup_boundary_no_overlap_unchanged():
 
 # ── Rate limiting tests ───────────────────────────────────────────────────────
 
-@patch("app.routers.meetings.transcribe_audio")
-@patch("app.routers.meetings.summarize_transcript")
+@patch("app.workers.pipeline.transcribe_audio")
+@patch("app.workers.pipeline.summarize_transcript")
 def test_upload_rate_limit_blocks_4th_request(mock_summarize, mock_transcribe):
     """
     POST /api/meetings is limited to UPLOAD_RATE_LIMIT (default: 3/hour) per IP.
@@ -465,7 +465,7 @@ def test_upload_rate_limit_blocks_4th_request(mock_summarize, mock_transcribe):
         "action_items": [],
     }
 
-    audio_payload = {"file": ("rl_test.wav", io.BytesIO(b"fake-audio-bytes"), "audio/wav")}
+    audio_payload = {"file": ("rl_test.wav", io.BytesIO(b"RIFF\x00\x00\x00\x00WAVEfake-audio-bytes"), "audio/wav")}
 
     # First 3 requests must succeed (202).
     for i in range(3):
@@ -487,5 +487,25 @@ def test_upload_rate_limit_blocks_4th_request(mock_summarize, mock_transcribe):
 
     # Clean up: reset so the rate window doesn't bleed into other tests.
     _main_module.limiter.reset()
+
+
+def test_upload_rejects_renamed_non_audio_file():
+    bad_payload = {"file": ("malicious.mp3", io.BytesIO(b"this is plain text content not an audio file"), "audio/mpeg")}
+    resp = client.post("/api/meetings", files=bad_payload)
+    assert resp.status_code == 400
+    assert "Invalid file content" in resp.json()["detail"]
+
+
+def test_upload_accepts_valid_audio_magic_bytes():
+    valid_wav = b"RIFF\x00\x00\x00\x00WAVEfmt \x10\x00\x00\x00"
+    payload = {"file": ("valid.wav", io.BytesIO(valid_wav), "audio/wav")}
+    
+    with patch("app.workers.pipeline.transcribe_audio") as mock_transcribe, \
+         patch("app.workers.pipeline.summarize_transcript") as mock_summarize:
+        mock_transcribe.return_value = {"text": "Valid audio content.", "duration": 2.0}
+        mock_summarize.return_value = {"summary": "Valid summary.", "key_decisions": [], "action_items": []}
+        
+        resp = client.post("/api/meetings", files=payload)
+        assert resp.status_code == 202
 
 

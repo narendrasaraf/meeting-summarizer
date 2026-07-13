@@ -125,6 +125,17 @@ class Settings:
     # development without active keys/network access.
     SIMULATE_MODE: bool = os.getenv("SIMULATE_MODE", "false").lower() in {"1", "true", "yes"}
 
+    # ── Authentication ────────────────────────────────────────────────────────
+    AUTH_REQUIRED: bool = os.getenv("AUTH_REQUIRED", "false").lower() in {"1", "true", "yes"}
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-for-development")
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+
+    # ── Redis / RQ ────────────────────────────────────────────────────────────
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    RQ_ASYNC: bool = os.getenv("RQ_ASYNC", "true").lower() in {"1", "true", "yes"}
+    RECOVERY_TIMEOUT_MINUTES: int = int(os.getenv("RECOVERY_TIMEOUT_MINUTES", "15"))
+
     # ── Computed helpers (read by services) ───────────────────────────────────
 
     @property

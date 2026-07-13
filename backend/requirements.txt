@@ -13,3 +13,9 @@ google-cloud-speech==2.27.0
 pydub==0.25.1
 ffmpeg-python==0.2.0
 slowapi==0.1.9
+python-jose[cryptography]
+passlib[bcrypt]
+rq
+redis
+alembic
+psycopg2-binary
