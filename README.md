@@ -368,12 +368,3 @@ When changing your SQLModel schema in `app/models/db.py`, you can generate and a
    ```
 
 ---
-
-## ⚠️ Known Limitations
-
-- **Large files (> 50 MB)**: the upload endpoint enforces `MAX_UPLOAD_MB=50`. Files between 25–50 MB are now handled automatically — `asr.py` detects files exceeding 24 MB and splits them into overlapping 10-minute chunks via **pydub** before sending each chunk to the provider. Chunks are exported as 16 kHz mono WAV (~19 MB each), safely under every provider's file-size limit.  
-  **Prerequisite**: `ffmpeg` must be on the system `PATH` for non-WAV source formats (MP3, M4A, WebM, OGG). WAV files work without ffmpeg. Install on Ubuntu: `apt install ffmpeg`; on macOS: `brew install ffmpeg`; on Windows: download from https://ffmpeg.org/download.html.
-- **RQ + Redis Distributed Queue**: Processing is decoupled from the web server using Redis Queue (RQ) workers. Uploads enqueue jobs immediately, freeing the API server to handle requests, while worker containers process them asynchronously. Replicas can be scaled horizontally using docker-compose: `docker compose up --scale worker=3 -d`. Stuck task crash-recovery is handled on boot by requeuing incomplete jobs older than 15 minutes.
-- **Lightweight Authentication**: Includes a secure JWT-based authentication system gated behind an `AUTH_REQUIRED` environment flag. If `AUTH_REQUIRED=true`, registration/login is mandatory to upload, fetch, list, or delete meetings. If `AUTH_REQUIRED=false` (default), the dashboard runs in anonymous mode, but users can still log in to separate their meeting history. Production deployments should set `AUTH_REQUIRED=true`.
-- **Library versions**: `openai` v1.x requires `httpx<0.28.0`. Bumping `httpx` to 0.28+ causes a `proxies` `TypeError` at startup. Use the pinned versions in `requirements.txt` inside a `.venv`.
-
