@@ -15,7 +15,7 @@ ffmpeg-python==0.2.0
 slowapi==0.1.9
 python-jose[cryptography]
 passlib[bcrypt]
-rq
+rq==1.16.2
 redis
 alembic
 psycopg2-binary

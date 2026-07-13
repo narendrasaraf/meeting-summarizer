@@ -14,9 +14,30 @@ Upload a meeting recording, get back a transcript, a decision-focused summary, a
 
 ### 🖥️ Dashboard Walkthrough
 
-| 1. Upload Idle | 2. Upload Progress | 3. Complete Results |
-| :---: | :---: | :---: |
-| ![Upload Idle](/docs/screenshots/upload_idle.png) | ![Upload Progress](/docs/screenshots/upload_progress.png) | ![Results View](/docs/screenshots/results_view.png) |
+Follow the step-by-step lifecycle of a meeting recording as it goes from raw audio to a structured, queryable AI summary:
+
+#### 1. Upload & Initial State
+We start at the main landing page, which loads our historical meeting summaries from SQLite/PostgreSQL. We can then trigger a new upload via the dropzone.
+
+| **1. Landing Page & History** | **2. File Selection / Dropzone** |
+| :---: | :---: |
+| ![Landing Page](/docs/screenshots/landingpage.png) | ![Upload Dropzone](/docs/screenshots/upload.png) |
+
+#### 2. The Processing Pipeline
+Once a file is selected, it goes through a two-stage progress flow:
+1. **Uploading**: The raw audio file is sent to the FastAPI backend.
+2. **Transcription & Summarization**: The backend returns a `202 Accepted` immediately. The client polls the `/api/meetings/{id}` endpoint every 2.5 seconds while a background task runs the ASR (Whisper/Gemini) and the LLM summarizer.
+
+| **3. Uploading to Server** | **4. Transcribing & Summarizing (Polling)** |
+| :---: | :---: |
+| ![Uploading to Server](/docs/screenshots/uploading_to_server.png) | ![Transcribing & Summarizing](/docs/screenshots/transcribing_summarizing.png) |
+
+#### 3. Structured Meeting Results
+Once polling completes, the frontend renders the full transcript side-by-side with the structured AI outputs (Summary, Key Decisions, and Action Items complete with Owner, Due Date, and Priority).
+
+| **5. Final Output & Action Items** |
+| :---: |
+| ![Final Output](/docs/screenshots/final_Output.png) |
 
 ---
 
